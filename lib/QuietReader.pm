@@ -1,5 +1,5 @@
-package web;
-use Dancer;
+package QuietReader;
+use Dancer ':syntax';
 use Dancer::Session;
 use WebService::Google::Reader;
 
