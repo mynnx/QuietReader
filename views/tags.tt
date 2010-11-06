@@ -1,0 +1,6 @@
+
+<ul>
+[% FOREACH name IN names %]
+<li> [% name %] </li>
+[% END %]
+</ul>
