@@ -1,14 +1,15 @@
 package QuietReader;
 use Dancer ':syntax';
+use Data::Dumper;
 use Dancer::Session;
 use WebService::Google::Reader;
 
 sub make_reader {
-	my ($user, $pass) = $@;
+	my ($user, $pass) = @_;
 	my $reader = WebService::Google::Reader->new(
 		username => $user,
 		password => $pass,
-		#debug => 1,
+		debug => 0,
 	);
 	return $reader;
 }
@@ -26,17 +27,19 @@ post '/tags' => sub {
 	session pass => params->{password};
 	my $user = session->{user};
 	my $pass = session->{pass};
-	debug "About to log in as $user with password $pass";
-
-	my $reader = make_reader($user, $pass);
-	debug "error: ${reader->error}" if $reader->error;
-	my $tags = $reader->tags;
-	debug "tags fetched: $tags";
 	my $rv = "";
-	foreach my $tag (@$tags) {
-		$rv += $tag->id if $tag;
+	my $reader = make_reader($user, $pass);
+	debug "About to log in as $user with password $pass";
+	debug "error: ${reader->error}" if $reader->error;
+
+	my @tags = $reader->tags;
+	foreach my $tag (@tags) {
+		my $id = $tag->id;
+		my $name = $id;
+		$name =~ s|.+/.+/label/(.+)|$1|;
+		$name =~ s|.+/.+/state/.+/(.+)|$1|;
+		$rv .= $name . '<br>';
 	}
-	mark_tags_read(('noisy'));
 	return $rv;
 };
 
