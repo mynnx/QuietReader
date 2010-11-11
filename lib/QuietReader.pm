@@ -21,35 +21,26 @@ before sub {
 	}
 };
 
-sub render_feeds {
+sub render_tags {
 	my $reader = make_reader(session('user'), session('pass'));
-	my $rv = "";
-	my @tags = $reader->tags;
-	foreach my $tag (@tags) {
-		my $id = $tag->id;
-		my $name = $id;
-		$name =~ s|.+/.+/label/(.+)|$1|;
-		$name =~ s|.+/.+/state/.+/(.+)|$1|;
-		$rv .= $name . '<br>';
-	}
-	return $rv;
+	my $error = $reader->error ? "error: " . $reader->error : "";
+
+    template tags => {
+        tag_names => [ map { (split '/', $_->id)[-1] } $reader->tags ],
+		error => $error
+    };
 };
 
-get '/' => \&render_feeds;
-get '/feeds' => \&render_feeds;
+get '/' => \&render_tags;
+get '/tags' => \&render_tags;
 
-get '/login' => sub { 
+get '/login' => sub {  
 	my $path_requested = vars->{requested_path} || '/';
-	my $rv = qq!
-	<form action="/login" method="POST">
-		<input type="text" name="username" /><br>
-		<input type="password" name="password" /><br>
-		<input type="hidden" name="path" value="$path_requested" />
-		<input type="submit" value="Log in" />
-	</form>!;
-	debug "LOGIN";
-	$rv .= "Error authenticating!" if params->{failed};
-	return $rv;
+	my $failed = params->{failed};
+	template login => {
+		path_requested => $path_requested,
+		login_failed => $failed ? "Login failed" : "",
+	};
 };
 
 post '/login' => sub {

@@ -3,3 +3,8 @@ logger: "file"
 appname: "web"
 session: "Simple"
 
+template: template_toolkit
+engines:
+    template_toolkit:
+        start_tag: '[%'
+        stop_tag: '%]'

@@ -1,0 +1,7 @@
+
+<form action="/login" method="POST">
+    <input type="text" name="username" /><br>
+    <input type="password" name="password" /><br>
+	<input type="hidden" name="path" value="[% path_reequested %]" />
+    <input type="submit" value="Log in" />
+</form>
