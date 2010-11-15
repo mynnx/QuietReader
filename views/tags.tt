@@ -1,7 +1,17 @@
 
-<ul>
-[% FOREACH name IN tag_names %]
-<li> [% name %] </li>
-[% END %]
-</ul>
+<form action="/tags" method="POST">
+	Unsorted:<br />
+	[% FOREACH feed in untagged %]
+		<input type="checkbox" name="[% feed.href %]">
+		<a href="[% feed.href %]">[% feed.title %]</a><br />
+	[% END %]
+
+	[% FOREACH pair IN tagged.pairs %]
+		[% pair.key %]:<br />
+		[% FOREACH feed IN pair.value %]
+			<input type="checkbox" name="[% feed.href %]">
+			<a href="[% feed.href %]">[% feed.title %]</a><br />
+		[% END %]
+	[% END %]
+</form>
 [% error %]

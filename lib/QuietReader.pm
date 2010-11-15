@@ -21,12 +21,40 @@ before sub {
 	}
 };
 
+sub build_feeds {
+	my $reader = shift;
+	my $categories = { none => [] };
+	foreach my $feed ($reader->feeds) {
+		my $feed_details = { 
+			title => $feed->title, 
+			href => (split '/', $feed->id, 2)[-1]
+		};
+		my @feed_categories = @{$feed->categories};
+		if (! @feed_categories) {
+			push @{$categories->{'none'}}, $feed_details;
+		} else {
+			foreach my $category (@feed_categories) {
+				my $label = $category->label;
+				if (! $categories->{$label}) {
+					$categories->{$label} = [ $feed_details ];
+				} else {
+					push @{$categories->{$label}}, $feed_details;
+				}
+			}
+		}
+	}
+	return $categories;
+}
+
 sub render_tags {
 	my $reader = make_reader(session('user'), session('pass'));
 	my $error = $reader->error ? "error: " . $reader->error : "";
-
+	my $tagged = build_feeds($reader);
+	my $untagged = delete $tagged->{'none'} || ();
+	debug Dumper $untagged;
     template tags => {
-        tag_names => [ map { (split '/', $_->id)[-1] } $reader->tags ],
+		tagged => $tagged,
+		untagged => $untagged,
 		error => $error
     };
 };
