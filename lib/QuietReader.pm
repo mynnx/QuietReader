@@ -1,8 +1,21 @@
 package QuietReader;
 use Dancer ':syntax';
-use Data::Dumper;
 use Dancer::Session;
+use Dancer::Plugin::DBIC;
+
 use WebService::Google::Reader;
+use Data::Dumper;
+use Data::Random qw(rand_chars);
+use Crypt::OTP qw(OTP);
+
+sub make_reader_otp {
+	my ($user, $otp_pass) = @_;
+	my $auth = schema->resultset('Auth')->find({ username => $user });
+	return undef if ! $auth;
+
+	my $pass = OTP($auth->otp, $otp_pass, 1);
+	return make_reader($user, $pass);
+}
 
 sub make_reader {
 	my ($user, $pass) = @_;
@@ -21,6 +34,13 @@ before sub {
 	}
 };
 
+# Gets a list of all feeds and the categories they belong
+# to, and organizes them by category.  Returns a hashref like:
+# {
+# 	'blogs' => [{ title => 'a blog', href => 'http://...'}, ...] }
+# }
+# 
+# Feeds not under any category are put in the 'none' key.
 sub build_feeds {
 	my $reader = shift;
 	my $categories = { none => [] };
@@ -47,16 +67,25 @@ sub build_feeds {
 }
 
 sub render_tags {
-	my $reader = make_reader(session('user'), session('pass'));
-	my $error = $reader->error ? "error: " . $reader->error : "";
-	my $tagged = build_feeds($reader);
-	my $untagged = delete $tagged->{'none'} || ();
-	debug Dumper $untagged;
-    template tags => {
-		tagged => $tagged,
-		untagged => $untagged,
-		error => $error
-    };
+	my $reader = make_reader_otp(session('user'), session('otp_pass'));
+
+	if (! $reader || $reader->error) {
+		my $error = "error: ";
+		if ($reader) {
+			$error .= $reader->error;
+		} else {
+			$error = "Could not retrieve OTP from database";
+		}
+		session error => $error;
+		redirect '/login';
+	} else {
+		my $tagged = build_feeds($reader);
+		my $untagged = delete $tagged->{'none'} || [];
+		template tags => {
+			tagged => $tagged,
+			untagged => $untagged,
+		};
+	}
 };
 
 get '/' => \&render_tags;
@@ -64,34 +93,38 @@ get '/tags' => \&render_tags;
 
 get '/login' => sub {  
 	my $path_requested = vars->{requested_path} || '/';
-	my $failed = params->{failed};
 	template login => {
 		path_requested => $path_requested,
-		login_failed => $failed ? "Login failed" : "",
+		error => session('error')
 	};
 };
 
 post '/login' => sub {
 	my $user = params->{username};
 	my $pass = params->{password};
-	my $rv = "";
 	my $reader = make_reader($user, $pass);
 
 	# Call ->tags, which may actually cause an ->error; creating a new 
 	# 	::Reader doesn't actually hit the API, I don't think.
 	my @tags = $reader->tags;
 	if ($reader->error) {
-		redirect '/login?failed=1';
+		session error => 'Login failed.  Check your credentials, bro.';
+		redirect '/login';
 	} else {
-		session user => $user,
-		session pass => $pass,
-		# TODO generate/store OTP, encrypt password with it and put in cookie
-		# - clear your session persistent store; passwords are plaintext for now!
+		# OTP generation uses Crypt::Random, which isn't recommended -
+		# 	find a different way to make a OTP if you're paranoid.
+		my $otp = join('', rand_chars(set => 'all', size => length $pass));
+		my $otp_pass = OTP($otp, $pass, 1);
+		session user => $user;
+		session otp_pass => $otp_pass;
+		
+		my $auth = schema->resultset('Auth')->update_or_create({
+			username => $user,
+			otp => $otp
+		});
+
 		redirect params->{path} || '/';
 	}
-	return $rv;
 };
-
-
 
 true;

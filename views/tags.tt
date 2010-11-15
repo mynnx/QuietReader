@@ -1,6 +1,8 @@
 
 <form action="/tags" method="POST">
-	Unsorted:<br />
+	[% IF untagged.size > 0 %]
+		Unsorted:<br />
+	[% END %]
 	[% FOREACH feed in untagged %]
 		<input type="checkbox" name="[% feed.href %]">
 		<a href="[% feed.href %]">[% feed.title %]</a><br />
@@ -14,4 +16,3 @@
 		[% END %]
 	[% END %]
 </form>
-[% error %]
