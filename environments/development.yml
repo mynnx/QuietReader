@@ -10,4 +10,4 @@ auto_reload: 1
 plugins:
     DBIC:
         qrdb:
-            dsn: dbi:sqlite:dbname=qrdb.sqlite
+            dsn: dbi:SQLite:dbname=qrdb.sqlite
