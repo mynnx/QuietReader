@@ -6,3 +6,8 @@ show_errors: 1
 # you should enable it by yourself if you want it
 # Module::Refresh is needed
 auto_reload: 1
+
+plugins:
+    DBIC:
+        qrdb:
+            dsn: dbi:sqlite:dbname=qrdb.sqlite
