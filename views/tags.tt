@@ -1,18 +1,24 @@
 
-<form action="/tags" method="POST">
-	[% IF untagged.size > 0 %]
-		Unsorted:<br />
-	[% END %]
-	[% FOREACH feed in untagged %]
-		<input type="checkbox" name="[% feed.href %]">
-		<a href="[% feed.href %]">[% feed.title %]</a><br />
-	[% END %]
-
-	[% FOREACH pair IN tagged.pairs %]
-		[% pair.key %]:<br />
-		[% FOREACH feed IN pair.value %]
+<div style="width:70%">
+	<form action="/" method="POST">
+		[% IF untagged.size > 0 %]
+			Unsorted:<br />
+		[% END %]
+		[% FOREACH feed in untagged %]
 			<input type="checkbox" name="[% feed.href %]">
 			<a href="[% feed.href %]">[% feed.title %]</a><br />
 		[% END %]
-	[% END %]
-</form>
+
+		[% FOREACH pair IN tagged.pairs %]
+			[% pair.key %]:<br />
+			[% FOREACH feed IN pair.value %]
+				<input type="checkbox" name="[% feed.href %]">
+				<a href="[% feed.href %]">[% feed.title %]</a><br />
+			[% END %]
+		[% END %]
+		<input type="submit" value="save">
+	</form>
+</div>
+<div style="width:30%">
+	OHAI
+</div>

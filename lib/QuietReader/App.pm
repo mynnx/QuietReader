@@ -8,9 +8,17 @@ use Data::Dumper;
 use Data::Random qw(rand_chars);
 use Crypt::OTP qw(OTP);
 
+before sub {
+	schema->deploy;
+	if (! session('user') && request->path_info !~ m{^/login}) {
+		var requested_path => request->path_info;
+		request->path_info('/login');
+	}
+};
+
 sub make_reader_otp {
 	my ($user, $otp_pass) = @_;
-	my $auth = schema->resultset('Auth')->find({ username => $user });
+	my $auth = schema->resultset('User')->find({ username => $user });
 	return undef if ! $auth;
 
 	my $pass = OTP($auth->otp, $otp_pass, 1);
@@ -26,13 +34,6 @@ sub make_reader {
 	);
 	return $reader;
 }
-
-before sub {
-	if (! session('user') && request->path_info !~ m{^/login}) {
-		var requested_path => request->path_info;
-		request->path_info('/login');
-	}
-};
 
 # Gets a list of all feeds and the categories they belong
 # to, and organizes them by category.  Returns a hashref like:
@@ -66,7 +67,7 @@ sub build_feeds {
 	return $categories;
 }
 
-sub render_tags {
+get '/' => sub {
 	my $reader = make_reader_otp(session('user'), session('otp_pass'));
 
 	if (! $reader || $reader->error) {
@@ -88,8 +89,21 @@ sub render_tags {
 	}
 };
 
-get '/' => \&render_tags;
-get '/tags' => \&render_tags;
+post '/' => sub {
+	my $params = params();
+	my @feeds = keys %$params;
+	my $user = schema->resultset('User')->find(session('user'));
+	my @added = ();
+	foreach my $feed (@feeds) {
+		my $updated_feed = $user->update_or_create_related('feeds', { uri => $feed });
+		push @added, $updated_feed->uri;
+	}
+	my $in_database = [ map { $_->uri } ($user->feeds) ];
+	template added => {
+		added => \@added,
+		in_db => $in_database
+	};
+};
 
 get '/login' => sub {  
 	my $path_requested = vars->{requested_path} || '/';
@@ -118,7 +132,7 @@ post '/login' => sub {
 		session user => $user;
 		session otp_pass => $otp_pass;
 		
-		my $auth = schema->resultset('Auth')->update_or_create({
+		my $auth = schema->resultset('User')->update_or_create({
 			username => $user,
 			otp => $otp
 		});

@@ -1,0 +1,11 @@
+
+We added: <br />
+[% FOREACH feed in added %]
+	[% feed %] <br />
+[% END %]
+<br />
+
+Now in the database, there is: <br />
+[% FOREACH feed in in_db %]
+	[% feed %] <br />
+[% END %]

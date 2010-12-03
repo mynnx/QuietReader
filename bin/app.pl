@@ -1,4 +1,4 @@
 #!/usr/bin/env perl
 use Dancer;
-use QuietReader;
+use QuietReader::App;
 dance;
